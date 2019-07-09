@@ -6,22 +6,169 @@ using Microsoft.CognitiveServices.Speech.Audio;
 
 namespace CoxSpeechToText
 {
-    class Program
+    public class Program
     {
         static void Main(string[] args)
         {
-            string _filename = "C:\\Repo\\Customers\\COX\\TextToSpeech\\PyronCalls\\Brandon Jackson 01 04 300102598160190104.wav";
+            string _filename = "C:\\Repo\\Customers\\COX\\TextToSpeech\\PyronCalls\\Brandon.wav";
             //string _filename = "C:\\Apps\\outputaudio.wav";
-            SpeechToTextAsyncFromWavFile(_filename).Wait();
-            //SpeechToTextFromWavFileInput(_filename).Wait();
+            //SpeechToTextAsyncFromWavFile(_filename).Wait();
+            SpeechToTextFromWavFileInput(_filename).Wait();
+            //ContinuousRecognitionWithFileAsync(_filename).Wait();
             Console.WriteLine("Please press a key to continue.");
             Console.ReadLine();
         }
 
+        public static async Task ContinuousRecognitionWithFileAsync(string wavfileName)
+        {
+            // <recognitionContinuousWithFile>
+            // Creates an instance of a speech config with specified subscription key and service region.
+            // Replace with your own subscription key and service region (e.g., "westus").
+            var config = SpeechConfig.FromSubscription("64398c5cf34648c8bca0236a8f65c751", "westus");
+
+            var stopRecognition = new TaskCompletionSource<int>();
+
+            // Creates a speech recognizer using file as audio input.
+            // Replace with your own audio file name.
+            using (var audioInput = AudioConfig.FromWavFileInput(wavfileName))
+            {
+                using (var recognizer = new SpeechRecognizer(config, audioInput))
+                {
+                    // Subscribes to events.
+                    recognizer.Recognizing += (s, e) =>
+                    {
+                        Console.WriteLine($"RECOGNIZING: Text={e.Result.Text}");
+                    };
+
+                    recognizer.Recognized += (s, e) =>
+                    {
+                        if (e.Result.Reason == ResultReason.RecognizedSpeech)
+                        {
+                            Console.WriteLine($"RECOGNIZED: Text={e.Result.Text}");
+                        }
+                        else if (e.Result.Reason == ResultReason.NoMatch)
+                        {
+                            Console.WriteLine($"NOMATCH: Speech could not be recognized.");
+                        }
+                    };
+
+                    recognizer.Canceled += (s, e) =>
+                    {
+                        Console.WriteLine($"CANCELED: Reason={e.Reason}");
+
+                        if (e.Reason == CancellationReason.Error)
+                        {
+                            Console.WriteLine($"CANCELED: ErrorCode={e.ErrorCode}");
+                            Console.WriteLine($"CANCELED: ErrorDetails={e.ErrorDetails}");
+                            Console.WriteLine($"CANCELED: Did you update the subscription info?");
+                        }
+
+                        stopRecognition.TrySetResult(0);
+                    };
+
+                    recognizer.SessionStarted += (s, e) =>
+                    {
+                        Console.WriteLine("\n    Session started event.");
+                    };
+
+                    recognizer.SessionStopped += (s, e) =>
+                    {
+                        Console.WriteLine("\n    Session stopped event.");
+                        Console.WriteLine("\nStop recognition.");
+                        stopRecognition.TrySetResult(0);
+                    };
+
+                    // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.
+                    await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
+
+                    // Waits for completion.
+                    // Use Task.WaitAny to keep the task rooted.
+                    Task.WaitAny(new[] { stopRecognition.Task });
+
+                    // Stops recognition.
+                    await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
+                }
+            }
+            // </recognitionContinuousWithFile>
+        }
+
+        // Continuous speech recognition.
+        //public static async Task ContinuousRecognitionWithFileAsync(string wavfileName)
+        //{
+        //    // <recognitionContinuousWithFile>
+        //    // Creates an instance of a speech config with specified subscription key and service region.
+        //    // Replace with your own subscription key and service region (e.g., "westus").
+        //    var config = SpeechConfig.FromSubscription("64398c5cf34648c8bca0236a8f65c751", "westus");
+
+        //    var stopRecognition = new TaskCompletionSource<int>();
+
+        //    // Creates a speech recognizer using file as audio input.
+        //    // Replace with your own audio file name.
+        //    using (var audioInput = AudioConfig.FromWavFileInput(wavfileName))
+        //    {
+        //        using (var recognizer = new SpeechRecognizer(config, audioInput))
+        //        {
+        //            // Subscribes to events.
+        //            recognizer.Recognizing += (s, e) =>
+        //            {
+        //                Console.WriteLine($"RECOGNIZING: Text={e.Result.Text}");
+        //            };
+
+        //            recognizer.Recognized += (s, e) =>
+        //            {
+        //                if (e.Result.Reason == ResultReason.RecognizedSpeech)
+        //                {
+        //                    Console.WriteLine($"RECOGNIZED: Text={e.Result.Text}");
+        //                }
+        //                else if (e.Result.Reason == ResultReason.NoMatch)
+        //                {
+        //                    Console.WriteLine($"NOMATCH: Speech could not be recognized.");
+        //                }
+        //            };
+
+        //            recognizer.Canceled += (s, e) =>
+        //            {
+        //                Console.WriteLine($"CANCELED: Reason={e.Reason}");
+
+        //                if (e.Reason == CancellationReason.Error)
+        //                {
+        //                    Console.WriteLine($"CANCELED: ErrorCode={e.ErrorCode}");
+        //                    Console.WriteLine($"CANCELED: ErrorDetails={e.ErrorDetails}");
+        //                    Console.WriteLine($"CANCELED: Did you update the subscription info?");
+        //                }
+
+        //                stopRecognition.TrySetResult(0);
+        //            };
+
+        //            recognizer.SessionStarted += (s, e) =>
+        //            {
+        //                Console.WriteLine("\n    Session started event.");
+        //            };
+
+        //            recognizer.SessionStopped += (s, e) =>
+        //            {
+        //                Console.WriteLine("\n    Session stopped event.");
+        //                Console.WriteLine("\nStop recognition.");
+        //                stopRecognition.TrySetResult(0);
+        //            };
+
+        //            // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.
+        //            await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
+                        
+        //            // Waits for completion.
+        //            // Use Task.WaitAny to keep the task rooted.
+        //            Task.WaitAny(new[] { stopRecognition.Task });
+
+        //            // Stops recognition.
+        //            await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
+        //        }
+        //    }
+        //    // </recognitionContinuousWithFile>
+        //}
         public static async Task SpeechToTextFromWavFileInput(string wavfileName)
         {
             var taskCompleteionSource = new TaskCompletionSource<int>();
-            var config = SpeechConfig.FromSubscription("64398c5cf34648c8bca0236a8f65c751", "westus");
+            var config = SpeechConfig.FromSubscription("e484766a4d51473699d276fa23f3a185", "eastus");
 
             var transcriptionStringBuilder = new StringBuilder();
 
@@ -30,23 +177,30 @@ namespace CoxSpeechToText
                 using (var recognizer = new SpeechRecognizer(config, audioInput))
                 {
                     try
-                    {
+                    {                       
                         // Subscribes to events.  
                         recognizer.Recognizing += (sender, eventargs) =>
                         {
-                        //TODO: Handle recognized intermediate result  
-                    };
+                            //Console.WriteLine(eventargs.Result.Text); //view text as it comes in  
+                        };
 
                         recognizer.Recognized += (sender, eventargs) =>
                         {
+                            //if (eventargs.Result.Text != null && eventargs.Result.Text.Trim() != "")
+                            //{
+                            //    transcriptionStringBuilder.Append(eventargs.Result.Text);
+
+                            //    //   Console.WriteLine(eventargs.Result.Text);
+                            //    //do something with final result.
+                            //}
                             if (eventargs.Result.Reason == ResultReason.RecognizedSpeech)
                             {
                                 transcriptionStringBuilder.Append(eventargs.Result.Text);
                             }
                             else if (eventargs.Result.Reason == ResultReason.NoMatch)
                             {
-                            //TODO: Handle not recognized value  
-                        }
+                                //TODO: Handle not recognized value  
+                            }
                         };
 
                         recognizer.Canceled += (sender, eventargs) =>
@@ -66,24 +220,31 @@ namespace CoxSpeechToText
 
                         recognizer.SessionStarted += (sender, eventargs) =>
                         {
-                        //Started recognition session  
-                    };
+                           // Console.WriteLine(transcriptionStringBuilder.ToString());
+                            //Started recognition session  
+                        };
 
                         recognizer.SessionStopped += (sender, eventargs) =>
                         {
                         //Ended recognition session  
                         taskCompleteionSource.TrySetResult(0);
                         };
+                        try
+                        {
+                            // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.  
+                            await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(true);
 
-                        // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.  
-                        await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
+                            // Waits for completion.  
+                            // Use Task.WaitAny to keep the task rooted.  
+                            Task.WaitAny(new[] { taskCompleteionSource.Task });
 
-                        // Waits for completion.  
-                        // Use Task.WaitAny to keep the task rooted.  
-                        Task.WaitAny(new[] { taskCompleteionSource.Task });
-
-                        // Stops recognition.  
-                        await recognizer.StopContinuousRecognitionAsync();
+                            // Stops recognition.  
+                            await recognizer.StopContinuousRecognitionAsync();
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
                     }
                     catch(Exception ex)
                     {
@@ -159,12 +320,12 @@ namespace CoxSpeechToText
                         stopRecognition.TrySetResult(0);
                     };
 
-                    // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.
-                    await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
-
                     // Waits for completion.
                     // Use Task.WaitAny to keep the task rooted.
                     Task.WaitAny(new[] { stopRecognition.Task });
+                    
+                    // Starts continuous recognition. Uses StopContinuousRecognitionAsync() to stop recognition.
+                    await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
                     // Stops recognition.
                     await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
